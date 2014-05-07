@@ -10,6 +10,7 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn, fuse_get_context
 
 from bioblend import galaxy
 
+# Split a path into hash of components
 def path_type(path):
     parts = filter(lambda x: len(x)>0, path.split('/'))
     if path=='/':
@@ -33,6 +34,7 @@ def esc_filename(fname):
             return '%-'
     return re.sub(r'%|/', esc, fname)
 
+# Escape/unescape slashes in filenames
 def unesc_filename(fname):
     def unesc(m):
         str=m.group(0)
@@ -54,12 +56,15 @@ class Context(LoggingMixIn, Operations):
         (typ,kw) = path_type(path)
         now = time.time()
         if typ=='root' or typ=='histories':
+            # Simple directory
             st = dict(st_mode=(S_IFDIR | 0555), st_nlink=2)
             st['st_ctime'] = st['st_mtime'] = st['st_atime'] = now
         elif typ=='datasets':
+            # Simple directory
             st = dict(st_mode=(S_IFDIR | 0555), st_nlink=2)
             st['st_ctime'] = st['st_mtime'] = st['st_atime'] = now
         elif typ=='data':
+            # A file, will be a symlink to a galaxy dataset
             d = self._dataset(kw)
             t = time.mktime(time.strptime(d['update_time'],'%Y-%m-%dT%H:%M:%S.%f'))
             fname = esc_filename(d['file_name'])
@@ -73,6 +78,7 @@ class Context(LoggingMixIn, Operations):
             raise FuseOSError(ENOENT)
         return st
 
+    # Return a symlink for the given dataset
     def readlink(self, path):
         (typ,kw) = path_type(path)
         if typ=='data':
@@ -83,9 +89,11 @@ class Context(LoggingMixIn, Operations):
     def read(self, path, size, offset, fh):
         raise RuntimeError('unexpected path: %r' % path)
 
+    # Lookup all histories in galaxy
     def _histories(self):
         return self.gi.histories.get_histories()
 
+    # Find a specific history by name
     def _history(self,h_name):
         h = filter(lambda x: x['name']==h_name, self.gi.histories.get_histories())
         if len(h)==0:
@@ -94,9 +102,11 @@ class Context(LoggingMixIn, Operations):
             print "Too many histories with that name"
         return h[0]
 
+    # Lookup all datasets in the specified history
     def _datasets(self, h):
         return self.gi.histories.show_history(h['id'],contents=True,details='all')
 
+    # Find a specific dataset - the 'kw' parameter is from path_type() above
     def _dataset(self, kw):
         h = self._history(kw['h_name'])
         ds = self._datasets(h)
@@ -111,6 +121,7 @@ class Context(LoggingMixIn, Operations):
             raise FuseOSError(ENOENT)
         return d[0]
 
+    # read directory contents
     def readdir(self, path, fh):
         (typ,kw) = path_type(path)
         if typ=='root':
