@@ -8,7 +8,7 @@ This will create a read-only directory to view the files in your galaxy historie
 * pip install --user bioblend
 * pip install --user fusepy
 * mkdir galaxy-files
-* edit your galaxy galaxy_wsgi.ini file, and add to the following to the app:main section `expose_dataset_path = True`
+* edit your  `galaxy/universe_wsgi.ini` file, and add to the following to the app:main section `expose_dataset_path = True`
 
 Then run:
 
