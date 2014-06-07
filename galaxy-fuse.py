@@ -54,7 +54,7 @@ class Context(LoggingMixIn, Operations):
     def __init__(self, api_key):
         self.gi = galaxy.GalaxyInstance(url='http://127.0.0.1:80', key=api_key)
         self.datasets_cache = {}
-        self.histories_cache = None
+        self.histories_cache = {'time':None, 'contents':None}
 
     def getattr(self, path, fh=None):
         #uid, gid, pid = fuse_get_context()
@@ -94,13 +94,14 @@ class Context(LoggingMixIn, Operations):
     def read(self, path, size, offset, fh):
         raise RuntimeError('unexpected path: %r' % path)
 
-    # Lookup all histories in galaxy; cache as (timestamp, result)
+    # Lookup all histories in galaxy; cache
     def _histories(self):
         cache = self.histories_cache
         now = time.time()
-        if cache is None or now - cache[0] > CACHE_TIME:
-            cache = (now, self.gi.histories.get_histories())
-        return cache[1]
+        if cache['contents'] is None or now - cache['time'] > CACHE_TIME:
+            cache['time'] = now
+            cache['contents'] = self.gi.histories.get_histories()
+        return cache['contents']
 
     # Find a specific history by name
     def _history(self,h_name):
@@ -111,14 +112,15 @@ class Context(LoggingMixIn, Operations):
             print "Too many histories with that name"
         return h[0]
 
-    # Lookup all datasets in the specified history, cache as {(timestamp, result)}
+    # Lookup all datasets in the specified history; cache
     def _datasets(self, h):
         id = h['id']
         cache = self.datasets_cache
         now = time.time()
-        if id not in cache or now - cache[id][0] > CACHE_TIME:
-            cache[id] = (now, self.gi.histories.show_history(h['id'],contents=True,details='all'))
-        return cache[id][1]
+        if id not in cache or now - cache[id]['time'] > CACHE_TIME:
+            cache[id] = {'time':now,
+                         'contents':self.gi.histories.show_history(id,contents=True,details='all')}
+        return cache[id]['contents']
 
     # Find a specific dataset - the 'kw' parameter is from path_type() above
     def _dataset(self, kw):
