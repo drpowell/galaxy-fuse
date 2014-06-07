@@ -11,7 +11,7 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn, fuse_get_context
 from bioblend import galaxy
 
 # number of seconds to cache history/dataset lookups
-CACHE_TIME = 2
+CACHE_TIME = 3
 
 # Split a path into hash of components
 def path_type(path):
