@@ -1,3 +1,5 @@
+**This is not maintained**.  I recommend using the version from https://github.com/claresloggett/gvl_commandline_utilities
+
 # Galaxy-FUSE
 ### Make galaxy history files available via a FUSE layer
 
